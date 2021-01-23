@@ -31,14 +31,14 @@ void FbankComputer::Compute(BaseFloat signal_raw_log_energy,
                            VectorBase<BaseFloat> *signal_frame,
                            VectorBase<BaseFloat> *feature) {
 
+
+  const MelBanks &mel_banks = *(GetMelBanks(vtln_warp));
   KALDI_ASSERT(signal_frame->Dim() == opts_.frame_opts.PaddedWindowSize() &&
                feature->Dim() == this->Dim());
 
-  const MelBanks &mel_banks = *(GetMelBanks(vtln_warp));
-
   if (opts_.use_energy && !opts_.raw_energy)
     signal_raw_log_energy = Log(std::max<BaseFloat>(VecVec(*signal_frame, *signal_frame),
-                                     std::numeric_limits<float>::min()));
+                                     std::numeric_limits<float>::epsilon()));
 
   if (srfft_ != NULL)  // Compute FFT using the split-radix algorithm.
     srfft_->Compute(signal_frame->Data(), true);
@@ -51,6 +51,7 @@ void FbankComputer::Compute(BaseFloat signal_raw_log_energy,
                                       signal_frame->Dim() / 2 + 1);
   if(!opts_.use_power)
     power_spectrum.ApplyPow(0.5);
+
   int32 mel_offest = ((opts_.use_energy && !opts_.htk_compat)?1:0);
   SubVector<BaseFloat> mel_energies(*feature, mel_offest, opts_.mel_opts.num_bins);
 
@@ -58,8 +59,8 @@ void FbankComputer::Compute(BaseFloat signal_raw_log_energy,
 
   if(opts_.use_log_fbank){
     // avoid log of zero (which should be prevented anyway by dithering).
-    mel_energies_.ApplyFloor(std::numeric_limits<float>::epsilon());
-    mel_energies_.ApplyLog();  // take the log.
+    mel_energies.ApplyFloor(std::numeric_limits<float>::epsilon());
+    mel_energies.ApplyLog();  // take the log.
   }
 
   if (opts_.use_energy) {
@@ -91,7 +92,7 @@ void FbankComputer::ComputeMask(VectorBase<BaseFloat> *signal_raw_log_energy,
       SubVector<BaseFloat> signal_frame(windows, 0);
       if (opts_.use_energy && !opts_.raw_energy)
           (*signal_raw_log_energy)(i) = Log(std::max<BaseFloat>(VecVec(signal_frame, signal_frame),
-                                        std::numeric_limits<float>::min()));
+                                        std::numeric_limits<float>::epsilon()));
 
       if (srfft_ != NULL)  // Compute FFT using the split-radix algorithm.
           srfft_->Compute(signal_frame.Data(), true);
@@ -109,7 +110,7 @@ void FbankComputer::ComputeMask(VectorBase<BaseFloat> *signal_raw_log_energy,
   }
 
   //apply frequency and time masks
-  /* initialize random seed: */
+
   srand (time(NULL));
   BaseFloat mean = power_spectrums.Sum() / (power_spectrums.NumCols() * power_spectrums.NumRows());
   //1. frequence mask
@@ -151,8 +152,8 @@ void FbankComputer::ComputeMask(VectorBase<BaseFloat> *signal_raw_log_energy,
 
     if(opts_.use_log_fbank){
         // avoid log of zero (which should be prevented anyway by dithering).
-        mel_energies_.ApplyFloor(std::numeric_limits<float>::epsilon());
-        mel_energies_.ApplyLog();  // take the log.
+        mel_energies.ApplyFloor(std::numeric_limits<float>::epsilon());
+        mel_energies.ApplyLog();  // take the log.
     }
 
     features->CopyRowFromVec(feature,i);
@@ -180,7 +181,7 @@ FbankComputer::FbankComputer(const FbankComputer &other):
   for (std::map<BaseFloat, MelBanks*>::iterator iter = mel_banks_.begin();
        iter != mel_banks_.end(); ++iter)
     iter->second = new MelBanks(*(iter->second));
-  if (other.srfft_ != NULL)
+  if (other.srfft_)
     srfft_ = new SplitRadixRealFft<BaseFloat>(*(other.srfft_));
 }
 

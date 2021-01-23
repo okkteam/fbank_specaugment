@@ -76,7 +76,7 @@ void OfflineFeatureTpl<F>::Compute(
     ExtractWindow(0, wave, r, computer_.GetFrameOptions(),
                   feature_window_function_, &window,
                   (use_raw_log_energy ? &raw_log_energy : NULL));
-    KALDI_LOG << raw_log_energy;
+
     SubVector<BaseFloat> output_row(*output, r);
     computer_.Compute(raw_log_energy, vtln_warp, &window, &output_row);
   }
